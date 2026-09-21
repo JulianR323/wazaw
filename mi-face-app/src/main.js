@@ -1,62 +1,54 @@
 import * as faceapi from 'face-api.js';
-
 const video = document.getElementById('video');
+const errorContainer = document.getElementById('error-container');
+const videoContainer = document.getElementById('video-container');
+const retryBtn = document.getElementById('retry-btn');
 
-// URL de los modelos (puedes usar '/models' si descargaste los archivos a public/models)
+let detectionInterval;
+let timeoutId;
+
 const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-
-async function init() {
-  console.log('Cargando modelos...');
-  
-  // 1. Cargar las redes neuronales necesarias
-  await Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
-  ]);
-
-  console.log('Modelos cargados. Iniciando webcam...');
-  startVideo();
-}
+Promise.all([
+  faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+  faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+]).then(startVideo)
+  .catch(err => console.error("Error al cargar los modelos:", err));
 
 function startVideo() {
-  navigator.mediaDevices
-    .getUserMedia({ video: {} })
-    .then((stream) => {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
       video.srcObject = stream;
     })
-    .catch((err) => console.error('Error al acceder a la cámara:', err));
+    .catch(err => console.error("Error al acceder a la cámara:", err));
+}
+function stopProcess() {
+  clearInterval(detectionInterval);
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+  }
 }
 
-// 2. Cuando el video empiece a reproducirse, iniciar el canvas de detección
 video.addEventListener('play', () => {
-  // Crear el canvas ajustado a la cámara
-  const canvas = faceapi.createCanvasFromMedia(video);
-  document.querySelector('.video-container').append(canvas);
+  timeoutId = setTimeout(() => {
+    stopProcess();
+    videoContainer.style.display = 'none';
+    errorContainer.style.display = 'block';
+  }, 5000);
+  detectionInterval = setInterval(async () => {
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
 
-  const displaySize = { width: video.width, height: video.height };
-  faceapi.matchDimensions(canvas, displaySize);
-
-  // Bucle de detección continuo
-  setInterval(async () => {
-    const detections = await faceapi
-      .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceExpressions();
-
-    // Escalar detecciones al tamaño visible
-    const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-    // Limpiar el frame anterior
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Dibujar resultados
-    faceapi.draw.drawDetections(canvas, resizedDetections);
-    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-    faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
-  }, 100);
+    if (detection) {
+      const happyScore = detection.expressions.happy;
+      if (happyScore > 0.94) {
+        clearTimeout(timeoutId); 
+        stopProcess();
+        window.location.href = '/dashboard.html';
+      }
+    }
+  }, 150); 
 });
-
-init();
+retryBtn.addEventListener('click', () => {
+  errorContainer.style.display = 'none';
+  videoContainer.style.display = 'block';
+  startVideo();
+});

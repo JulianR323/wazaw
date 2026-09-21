@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Detección Facial con Vite + Face-API</title>
-    <link rel="stylesheet" href="/src/style.css" />
-  </head>
-  <body>
-    <div class="video-container">
-      <video id="video" width="720" height="560" autoplay muted></video>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconocimiento Facial - Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; }
+    video { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); object-fit: cover; }
+  </style>
+</head>
+<body>
+  <div id="app" class="text-center w-100 d-flex justify-content-center">
+    <div id="video-container">
+      <h4 class="mb-3 text-secondary">Muestra una gran sonrisa para acceder</h4>
+      <video id="video" width="640" height="480" autoplay muted></video>
     </div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+
+    <div id="error-container" class="card p-5 shadow-sm border-0" style="display: none; max-width: 400px;">
+      <h3 class="text-danger mb-3">Error de validación</h3>
+      <p class="text-muted mb-4">No se detectó la expresión de felicidad requerida en el tiempo establecido.</p>
+      <button id="retry-btn" class="btn btn-primary w-100 py-2">Intentarlo de nuevo</button>
+    </div>
+  </div>
+<script type="module" src="src/main.js"></script>
+</body>
 </html>
